@@ -1,6 +1,6 @@
 # Tasmotalist
 
-A CLI program for searching tasmota devices over the connected network. Built for Windows and Mac.
+A CLI program for searching tasmota devices within the local network. Built for Windows and Mac.
 ![img_1.png](img_1.png)
 
 ![img_2.png](img_2.png)
