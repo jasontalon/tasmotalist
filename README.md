@@ -20,7 +20,7 @@ See below for the installation procedure for respective platform
     * [Chocolatey](https://community.chocolatey.org/packages/nmap#install)
 * Mac:
     * [Official Installer](https://nmap.org/download.html#macosx)
-    * [Homebrew](https://formulae.brew.sh/formula/nmap
+    * [Homebrew](https://formulae.brew.sh/formula/nmap)
 
 ## Installation
 
