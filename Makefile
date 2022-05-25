@@ -2,10 +2,10 @@ build/mac/m1:
 	GOOS=darwin GOARCH=arm64 go build -o ./bin/mac/m1/tasmotalist
 
 build/win/amd64:
-	GOOS=windows GOARCH=amd64 go build -o ./bin/win/amd64/tasmotalist
+	GOOS=windows GOARCH=amd64 go build -o ./bin/win/amd64/tasmotalist.exe
 
 build/win/arm64:
-	GOOS=windows GOARCH=arm64 go build -o ./bin/win/arm64/tasmotalist
+	GOOS=windows GOARCH=arm64 go build -o ./bin/win/arm64/tasmotalist.exe
 
 build:
 	rimraf bin

@@ -1,3 +1,4 @@
 .idea
 bin
 **/*.xml
+.DS_Store

@@ -1,14 +1,55 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	"net/http"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
+func TestTasmoTaList(t *testing.T) {
+	addresses := []string{"192.168.1.32", "192.168.1.26", "192.168.1.28"}
+	var tasmotalist []TasmotaInfo
+	for _, addr := range addresses {
+		var tasmota TasmotaInfo
+
+		url := fmt.Sprintf("http://%s/cm?cmnd=status 0", addr)
+
+		res, err := http.Get(url)
+
+		if err != nil {
+			continue
+		}
+
+		if !(res.StatusCode == 401 || res.StatusCode == 200) {
+			continue
+		}
+
+		doc, err := goquery.NewDocumentFromReader(res.Body)
+
+		if err != nil {
+			continue
+		}
+
+		content := doc.Text()
+
+		err = json.Unmarshal([]byte(content), &tasmota)
+
+		if err != nil {
+			continue
+		}
+
+		fmt.Println(tasmota)
+
+		tasmotalist = append(tasmotalist, tasmota)
+	}
+
+	fmt.Println(tasmotalist)
+
+}
 func TestCheckForTasmotaDevices(t *testing.T) {
 	filename := "nmap.xml"
 
@@ -26,18 +67,11 @@ func TestCheckForTasmotaDevices(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err != nil {
-		t.Error(err)
+	tasmotalist := FindTasmotaDevices(FindPotentialHosts(nmap.Hosts))
+
+	for _, tasmota := range tasmotalist {
+		fmt.Println(tasmota)
 	}
-
-	devices := FindTasmotaDevices(FindPotentialHosts(nmap.Hosts))
-
-	ResolveTasmotaDeviceName(devices)
-
-	for _, d := range devices {
-		fmt.Println(d.Hostnames.Hostname.Name + " " + d.Address.Addr)
-	}
-
 }
 func TestFindDevices(t *testing.T) {
 	filename := "nmap.xml"
@@ -64,7 +98,7 @@ func TestFindDevices(t *testing.T) {
 }
 
 func TestCheckNmap(t *testing.T) {
-	err := CheckNmap()
+	_, err := CheckNmap()
 
 	fmt.Println(err)
 }
@@ -125,49 +159,4 @@ func TestExecuteCmd(t *testing.T) {
 	}
 
 	fmt.Println(output)
-}
-
-func TestFlow(t *testing.T) {
-
-	wd, err := os.Getwd()
-
-	if err != nil {
-		panic(err)
-	}
-
-	nmapFile := "nmap.xml"
-
-	nmapFullPath := path.Join(wd, nmapFile)
-
-	currentIp := GetOutboundIP().String()
-
-	ipRange := currentIp[0:strings.LastIndex(currentIp, ".")] + ".0-255"
-
-	if !CheckNmap() {
-		panic("nmap not installed")
-	}
-
-	fmt.Println("searching ip range " + ipRange)
-
-	_, err = ExecuteCmd("nmap", "--script-timeout", "2", "-d", "-oX", nmapFile, "-p", "80", ipRange)
-
-	if err != nil {
-		panic(err)
-	}
-
-	if _, err := os.Stat(nmapFullPath); err != nil {
-		panic(err)
-	}
-
-	nmapOutput, err := GetNmapOutput(nmapFullPath)
-
-	if err != nil {
-		panic(err)
-	}
-
-	devices := FindTasmotaDevices(FindPotentialHosts(nmapOutput.Hosts))
-
-	ResolveTasmotaDeviceName(devices)
-
-	t.Log(nmapOutput)
 }

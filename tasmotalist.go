@@ -2,22 +2,34 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
+	"time"
 )
 
-func ResolveTasmotaDeviceName(hosts []Host) {
-	for i := range hosts {
-		res, err := http.Get("http://" + hosts[i].Address.Addr)
+func FindTasmotaDevices(hosts []Host) (tasmotalist []TasmotaInfo) {
+	for _, host := range hosts {
+		var tasmota TasmotaInfo
+
+		url := fmt.Sprintf("http://%s/cm?cmnd=status%s", host.Address.Addr, "%200")
+
+		res, err := http.Get(url)
 
 		if err != nil {
+			continue
+		}
+
+		if !(res.StatusCode == 401 || res.StatusCode == 200) {
 			continue
 		}
 
@@ -27,43 +39,24 @@ func ResolveTasmotaDeviceName(hosts []Host) {
 			continue
 		}
 
-		title := doc.Find("title").Text()
+		content := doc.Text()
 
-		title = strings.ReplaceAll(title, " - Main Menu", "")
+		err = json.Unmarshal([]byte(content), &tasmota)
 
-		hosts[i].Hostnames.Hostname.Name = title
+		if err != nil {
+			continue
+		}
+
+		if tasmota.Warning != "" {
+			tasmota.StatusNET.IPAddress = host.Address.Addr
+			tasmota.Status.DeviceName = "Secured. (Requires password)"
+			tasmota.StatusFWR.Version = "?"
+		}
+
+		tasmotalist = append(tasmotalist, tasmota)
 	}
-}
 
-func FindTasmotaDevices(hosts []Host) []Host {
-	return Filter[Host](hosts, func(host Host, _ int) bool {
-		res, err := http.Get("http://" + host.Address.Addr)
-
-		if err != nil {
-			return false
-		}
-
-		doc, err := goquery.NewDocumentFromReader(res.Body)
-
-		if err != nil {
-			return false
-		}
-
-		found := false
-
-		doc.Find("a").Each(func(_ int, selection *goquery.Selection) {
-			if found {
-				return
-			}
-
-			content := selection.Text()
-
-			found = strings.HasPrefix(content, "Tasmota") && strings.HasSuffix(content, "by Theo Arends")
-		})
-
-		return found
-	})
-
+	return tasmotalist
 }
 
 func FindPotentialHosts(hosts []Host) []Host {
@@ -80,22 +73,35 @@ func FindPotentialHosts(hosts []Host) []Host {
 	})
 }
 
-func CheckNmap() bool {
-	output, err := ExecuteCmd("which", "nmap")
+func CheckNmap() (string, error) {
+	cmd := "which"
 
-	if err != nil {
-		return false
+	if runtime.GOOS == "windows" {
+		cmd = "where"
 	}
 
-	if strings.Contains(output, "not found") {
-		return false
+	output, err := ExecuteCmd(cmd, "nmap")
+
+	if err != nil && output == "" {
+		return "", err
 	}
 
-	return true
+	if strings.Contains(output, "not found") || strings.Contains(output, "Could not find") {
+		return "", errors.New("nmap not found")
+	}
+
+	output, err = ExecuteCmd("nmap", "-V")
+	return output, nil
 }
 func GetNmapOutput(filePath string) (output NmapOutput, err error) {
 	xmlFile, err := os.Open(filePath)
-	defer xmlFile.Close()
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(xmlFile)
+
 	if err != nil {
 		return output, err
 	}
@@ -106,23 +112,32 @@ func GetNmapOutput(filePath string) (output NmapOutput, err error) {
 		return output, err
 	}
 
-	xml.Unmarshal(byteValue, &output)
+	err = xml.Unmarshal(byteValue, &output)
+
+	if err != nil {
+		return output, err
+	}
 
 	return output, nil
 }
 
-func ExecuteCmd(cmd string, args ...string) (string, error) {
+func ExecuteCmd(cmd string, args ...string) (output string, err error) {
 	proc := exec.Command(cmd, args...)
 
 	reader, err := proc.StdoutPipe()
-
+	errreader, err := proc.StderrPipe()
 	if err != nil {
 		return "", nil
 	}
 
 	scanner := bufio.NewScanner(reader)
+	errscanner := bufio.NewScanner(errreader)
 
-	var output string
+	go func() {
+		for errscanner.Scan() {
+			output += errscanner.Text() + "\n"
+		}
+	}()
 
 	go func() {
 		for scanner.Scan() {
@@ -133,13 +148,15 @@ func ExecuteCmd(cmd string, args ...string) (string, error) {
 	err = proc.Start()
 
 	if err != nil {
-		return "", err
+		return output, err
 	}
 
 	err = proc.Wait()
 
+	time.Sleep(time.Second * 1)
+
 	if err != nil {
-		return "", err
+		return output, err
 	}
 
 	return output, nil
@@ -224,14 +241,19 @@ func Find[T any](collection []T, predicate func(T) bool) (T, bool) {
 	return result, false
 }
 
-func GetOutboundIP() net.IP {
+func GetOutboundIP() (net.IP, error) {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	defer conn.Close()
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(conn)
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
-	return localAddr.IP
+	return localAddr.IP, nil
 }
