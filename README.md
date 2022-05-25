@@ -5,13 +5,13 @@ A CLI program for searching tasmota devices within the local network. Built for 
 
 ![img_2.png](img_2.png)
 ## Motivation
-I have a number of tasmota devices in my  house. There are times that I need to check if they are online. Previous way of checking is going through the phone and open an app called Fing to scan my network and see the connected devices.
+I have a number of tasmota devices in my  house. There are times that I need to check if they are online. My previous way of checking is going through the phone and open an app called Fing to find connected devices within the local network.
 
-Once it identifies the devices, then its up to me to guess which devices are Tasmotas, which is quite cumbersome and time-consuming. This is the reason why I created this small program to search for tasmota devices on the connected network. 
+Once it identifies the devices, then it's up to me to guess which devices are tasmotas, which is quite cumbersome and time-consuming. This is the reason why I created this small program to search for tasmota devices within the local network. 
 
 ## Requirements
 
-The program is using another utility called [nmap](https://nmap.org/) to scan available devices over the connected network.
+The program is using another utility called [nmap](https://nmap.org/) to scan the network.
 
 See below for the installation procedure for respective platform
 
