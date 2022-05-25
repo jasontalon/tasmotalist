@@ -20,4 +20,24 @@ See below for the installation procedure for respective platform
     * [Chocolatey](https://community.chocolatey.org/packages/nmap#install)
 * Mac:
     * [Official Installer](https://nmap.org/download.html#macosx)
-    * [Homebrew](https://formulae.brew.sh/formula/nmap)
+    * [Homebrew](https://formulae.brew.sh/formula/nmap
+
+## Installation
+
+Once you have installed the mentioned requirements above, you are now ready to use Tasmotalist.
+
+You can find the executable file in the [release page](https://github.com/jasontalon/tasmotalist/releases/tag/v1.0.0)
+
+Or, you may build your own by downloading the [Go SDK](https://go.dev/dl/) and by cloning the repository then run the following 
+```
+make build
+```
+
+## Issues and Suggestions
+
+Feel free to drop any questions, suggestions, and issues to improving the utility.
+
+You may report by using the [Github Issues](https://github.com/jasontalon/tasmotalist/issues)
+
+
+ 
