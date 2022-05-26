@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -28,15 +28,13 @@ func TestTasmoTaList(t *testing.T) {
 			continue
 		}
 
-		doc, err := goquery.NewDocumentFromReader(res.Body)
+		content, err := io.ReadAll(res.Body)
 
 		if err != nil {
 			continue
 		}
 
-		content := doc.Text()
-
-		err = json.Unmarshal([]byte(content), &tasmota)
+		err = json.Unmarshal(content, &tasmota)
 
 		if err != nil {
 			continue

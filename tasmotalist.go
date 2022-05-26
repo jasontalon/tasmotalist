@@ -6,7 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -32,16 +32,13 @@ func FindTasmotaDevices(hosts []Host) (tasmotalist []TasmotaInfo) {
 		if !(res.StatusCode == 401 || res.StatusCode == 200) {
 			continue
 		}
-
-		doc, err := goquery.NewDocumentFromReader(res.Body)
+		content, err := io.ReadAll(res.Body)
 
 		if err != nil {
 			continue
 		}
 
-		content := doc.Text()
-
-		err = json.Unmarshal([]byte(content), &tasmota)
+		err = json.Unmarshal(content, &tasmota)
 
 		if err != nil {
 			continue
